@@ -14,29 +14,52 @@ def check_camera_connectivity(camera_url):
 
         cap = cv2.VideoCapture(camera_url)
         if not cap.isOpened():
-            print("CRITICAL: Could not open video stream from IP camera.")
-            sys.exit(2)  # Exit with status 2 to indicate a critical error
+            status = f"CRITICAL: Could not open IP camera at {camera_url}"
+            exit_code = 2  # Exit with status 2 to indicate a critical error
+            return status, exit_code
 
         ret, _ = cap.read()
         if not ret:
-            print("CRITICAL: Could not read frame from IP camera.")
-            sys.exit(2)  # Exit with status 2 to indicate a critical error
+            status = f"CRITICAL: Could not open IP camera at {camera_url}"
+            exit_code = 2  # Exit with status 2 to indicate a critical error
+            return status, exit_code
 
-        print("OK: IP camera is accessible and streaming video.")
-        sys.exit(0)  # Exit with status 0 to indicate success
+        status = f"OK: IP camera is accessible and streaming video at {camera_url}"
+        exit_code = 0  # Exit with status 2 to indicate a critical error
+        return status, exit_code
 
     except Exception as e:
-        print(f"CRITICAL: Exception occurred: {e}")
-        sys.exit(2)  # Exit with status 2 to indicate a critical error
+        status = f"CRITICAL exception: {e}"
+        exit_code = 2  # Exit with status 2 to indicate a critical error
+        return status, exit_code
 
     finally:
         cap.release()
 
+def read_ips_from_config(file_path):
+    """Read IP addresses from a config file."""
+    ip_list = []
+    if os.path.exists(file_path):
+        with open(file_path, 'r', encoding="utf-8") as file:
+            ip_list = [line.strip() for line in file if line.strip()]
+    else:
+        print(f"Config file {file_path} not found.")
+
+    return ip_list
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: check_ip_camera.py <camera_url>")
+        print("Usage: check_ip_camera.py <camera_conf>")
         sys.exit(3)  # Exit with status 1 to indicate a usage error
 
-    cameraurl = sys.argv[1]
-    check_camera_connectivity(cameraurl)
+    camera_conf = sys.argv[1]
+    camera_urls = read_ips_from_config(camera_conf)
+    exit_status = []
+    camera_status = []
+    for cameraurl in camera_urls:
+        status, exit_code = check_camera_connectivity(cameraurl)
+        camera_status.append(status)
+        exit_status.append(exit_code)
 
+    print("\n".join(camera_status))
+    sys.exit(max(exit_status))
